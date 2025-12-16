@@ -78,15 +78,13 @@
 									}
 								},
 								"sink": {
-									"type": "DelimitedTextSink",
+									"type": "ParquetSink",
 									"storeSettings": {
 										"type": "AzureBlobFSWriteSettings",
 										"copyBehavior": "FlattenHierarchy"
 									},
 									"formatSettings": {
-										"type": "DelimitedTextWriteSettings",
-										"quoteAllText": true,
-										"fileExtension": ".txt"
+										"type": "ParquetWriteSettings"
 									}
 								},
 								"enableStaging": false,
@@ -113,11 +111,11 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "DS_SILVER_PARQUET_FOLDER",
+									"referenceName": "DS_SILVER_PARQUET_FOLDER_PQ",
 									"type": "DatasetReference",
 									"parameters": {
 										"pFolder": {
-											"value": "@item().target_folder",
+											"value": "item().target_folder",
 											"type": "Expression"
 										}
 									}

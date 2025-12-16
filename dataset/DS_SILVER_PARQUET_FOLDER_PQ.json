@@ -1,0 +1,28 @@
+{
+	"name": "DS_SILVER_PARQUET_FOLDER_PQ",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_BRONZE_SILVER",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"pFolder": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@dataset().pFolder",
+					"type": "Expression"
+				},
+				"fileSystem": "silver"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}
