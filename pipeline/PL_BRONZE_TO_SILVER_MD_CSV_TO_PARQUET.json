@@ -53,8 +53,8 @@
 					"batchCount": 5,
 					"activities": [
 						{
-							"name": "ACT_GET_FILES",
-							"type": "GetMetadata",
+							"name": "ACT_COPY_TABLE_FOLDER_TO_PARQUET",
+							"type": "Copy",
 							"dependsOn": [],
 							"policy": {
 								"timeout": "0.12:00:00",
@@ -65,27 +65,61 @@
 							},
 							"userProperties": [],
 							"typeProperties": {
-								"dataset": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"wildcardFileName": "*.csv",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings",
+										"copyBehavior": "FlattenHierarchy"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
 									"referenceName": "DS_BRONZE_CSV_FOLDER",
 									"type": "DatasetReference",
 									"parameters": {
 										"pFolder": {
-											"value": "@item().source_folder\n",
+											"value": "@item().source_folder",
 											"type": "Expression"
 										}
 									}
-								},
-								"fieldList": [
-									"childItems"
-								],
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
 								}
-							}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_SILVER_PARQUET_FOLDER",
+									"type": "DatasetReference",
+									"parameters": {
+										"pFolder": "@item().target_folder"
+									}
+								}
+							]
 						}
 					]
 				}
