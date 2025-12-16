@@ -32,6 +32,26 @@
 					},
 					"firstRowOnly": false
 				}
+			},
+			{
+				"name": "ACT_FOREACH_TABLES",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "ACT_LOOKUP_CONFIG",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('ACT_LOOKUP_CONFIG').output.value",
+						"type": "Expression"
+					},
+					"batchCount": 5
+				}
 			}
 		],
 		"annotations": []
