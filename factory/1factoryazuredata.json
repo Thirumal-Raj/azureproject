@@ -1,0 +1,9 @@
+{
+	"name": "1factoryazuredata",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "2ab67643-336c-4f97-bf9a-64d930dae45b",
+		"tenantId": "c364bf20-56a9-4974-bab1-27b62d2bc965"
+	}
+}
