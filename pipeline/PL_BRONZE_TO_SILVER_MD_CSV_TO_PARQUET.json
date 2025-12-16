@@ -105,7 +105,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"pFolder": {
-											"value": "item().source_folder\n",
+											"value": "@item().source_folder",
 											"type": "Expression"
 										}
 									}
@@ -117,7 +117,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"pFolder": {
-											"value": "item().target_folder",
+											"value": "@item().target_folder",
 											"type": "Expression"
 										}
 									}
