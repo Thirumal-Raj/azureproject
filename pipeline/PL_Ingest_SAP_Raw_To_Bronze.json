@@ -1,0 +1,25 @@
+{
+	"name": "PL_Ingest_SAP_Raw_To_Bronze",
+	"properties": {
+		"description": "Copy SAP CSV files from raw to bronze as Parquet with metadata",
+		"activities": [
+			{
+				"name": "Copy_KNA1_Customers",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"enableStaging": false
+				}
+			}
+		],
+		"annotations": []
+	}
+}
