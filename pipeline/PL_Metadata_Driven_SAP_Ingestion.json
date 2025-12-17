@@ -53,7 +53,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@activity('LKP_Read_SAP_Config').output.files",
+						"value": "@activity('LKP_Read_SAP_Config').output.firstRow.files",
 						"type": "Expression"
 					},
 					"batchCount": 4,
