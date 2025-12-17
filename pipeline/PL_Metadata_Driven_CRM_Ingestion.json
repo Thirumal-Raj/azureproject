@@ -1,0 +1,143 @@
+{
+	"name": "PL_Metadata_Driven_CRM_Ingestion",
+	"properties": {
+		"description": "Metadata-driven pipeline to copy CRM JSON files from raw to bronze as Parquet",
+		"activities": [
+			{
+				"name": "LKP_Read_CRM_Config",
+				"description": "Read CRM config file from ADLS",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "DS_ADLS_Config_JSON",
+						"type": "DatasetReference",
+						"parameters": {
+							"configFileName": "crm_config.json"
+						}
+					}
+				}
+			},
+			{
+				"name": "FE_Process_CRM_Files",
+				"description": "Loop through CRM files and copy in parallel",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LKP_Read_CRM_Config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LKP_Read_CRM_Config').output.firstRow.files",
+						"type": "Expression"
+					},
+					"batchCount": 3,
+					"activities": [
+						{
+							"name": "CP_Copy_File",
+							"description": "Copy JSON to Parquet dynamically",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_ADLS_JSON_Parameterized",
+									"type": "DatasetReference",
+									"parameters": {
+										"containerName": {
+											"value": "@item().source_container",
+											"type": "Expression"
+										},
+										"folderPath": {
+											"value": "@item().source_folder",
+											"type": "Expression"
+										},
+										"fileName": {
+											"value": "@item().source_file",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_ADLS_Parquet_Parameterized",
+									"type": "DatasetReference",
+									"parameters": {
+										"containerName": {
+											"value": "@item().target_container",
+											"type": "Expression"
+										},
+										"folderPath": {
+											"value": "@item().target_folder",
+											"type": "Expression"
+										},
+										"fileName": {
+											"value": "@item().target_file",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"annotations": []
+	}
+}
