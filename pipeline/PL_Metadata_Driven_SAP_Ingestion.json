@@ -32,10 +32,10 @@
 						"referenceName": "DS_ADLS_Config_JSON",
 						"type": "DatasetReference",
 						"parameters": {
-							"configFileName": "\"sap_config.json\""
+							"configFileName": "sap_config.json"
 						}
 					},
-					"firstRowOnly": false
+					"firstRowOnly": true
 				}
 			},
 			{
