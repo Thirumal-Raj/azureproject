@@ -1,0 +1,27 @@
+{
+	"name": "DS_ADLS_Config_JSON",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_Gen2_Medallion",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"configFileName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().configFileName",
+					"type": "Expression"
+				},
+				"fileSystem": "config"
+			}
+		},
+		"schema": {}
+	}
+}

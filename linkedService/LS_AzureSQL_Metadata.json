@@ -1,0 +1,18 @@
+{
+	"name": "LS_AzureSQL_Metadata",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"description": "SQL Database for pipeline watermark metadata",
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "azureprojectserverptr.database.windows.net",
+			"database": "azureprojectdbptr",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "adminptr",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEU4RUVDRkJCLTE4M0EtNDQ4Qy05OTJDLUJGQzM4RjNCQzcyN18zOWE2ZTlkYS03M2M0LTRmMDMtYmQ1MS1kYjcwYWFkYjRhYzkiDQp9"
+		}
+	}
+}

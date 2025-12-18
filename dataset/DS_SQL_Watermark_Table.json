@@ -1,0 +1,45 @@
+{
+	"name": "DS_SQL_Watermark_Table",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_AzureSQL_Metadata",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "watermark_id",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "source_name",
+				"type": "varchar"
+			},
+			{
+				"name": "last_run_timestamp",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "last_run_status",
+				"type": "varchar"
+			},
+			{
+				"name": "files_processed",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "updated_at",
+				"type": "datetime2",
+				"scale": 7
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "pipeline_watermark"
+		}
+	}
+}
