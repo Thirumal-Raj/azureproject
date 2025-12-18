@@ -211,6 +211,58 @@
 						"type": "Expression"
 					}
 				}
+			},
+			{
+				"name": "SP_Update_Watermark",
+				"description": "Update watermark in SQL database",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "FE_Process_SAP_Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_UpdateWatermark]",
+					"storedProcedureParameters": {
+						"FilesProcessed": {
+							"value": {
+								"value": "@length(activity('LKP_Read_SAP_Config').output.firstRow.files)",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"NewTimestamp": {
+							"value": {
+								"value": "@variables('CurrentTimestamp')",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"SourceName": {
+							"value": "SAP",
+							"type": "String"
+						},
+						"Status": {
+							"value": "Success",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_AzureSQL_Metadata",
+					"type": "LinkedServiceReference"
+				}
 			}
 		],
 		"variables": {
