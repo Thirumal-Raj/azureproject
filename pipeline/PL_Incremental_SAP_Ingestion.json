@@ -1,5 +1,5 @@
 {
-	"name": "PL_Incremental_SAP_Ingestion1",
+	"name": "PL_Incremental_SAP_Ingestion",
 	"properties": {
 		"description": "Metadata-driven pipeline to copy SAP CSV files from raw to bronze as Parquet",
 		"activities": [
@@ -7,14 +7,7 @@
 				"name": "LKP_Read_SAP_Config",
 				"description": "Read SAP config file from ADLS",
 				"type": "Lookup",
-				"dependsOn": [
-					{
-						"activity": "SET_Current_Timestamp",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
+				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -155,65 +148,6 @@
 							]
 						}
 					]
-				}
-			},
-			{
-				"name": "LKP_Read_Watermark",
-				"description": "Read last run timestamp from watermark file",
-				"type": "Lookup",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"source": {
-						"type": "JsonSource",
-						"storeSettings": {
-							"type": "AzureBlobFSReadSettings",
-							"recursive": true,
-							"enablePartitionDiscovery": false
-						},
-						"formatSettings": {
-							"type": "JsonReadSettings"
-						}
-					},
-					"dataset": {
-						"referenceName": "DS_ADLS_Watermark_JSON",
-						"type": "DatasetReference",
-						"parameters": {
-							"watermarkFileName": "sap_watermark.json"
-						}
-					}
-				}
-			},
-			{
-				"name": "SET_Current_Timestamp",
-				"description": "Store current timestamp for watermark update",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "LKP_Read_Watermark",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "CurrentTimestamp",
-					"value": {
-						"value": "@utcNow()",
-						"type": "Expression"
-					}
 				}
 			}
 		],
