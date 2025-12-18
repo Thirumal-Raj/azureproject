@@ -1,0 +1,227 @@
+{
+	"name": "PL_Incremental_SAP_Ingestion",
+	"properties": {
+		"description": "Metadata-driven pipeline to copy SAP CSV files from raw to bronze as Parquet",
+		"activities": [
+			{
+				"name": "LKP_Read_SAP_Config",
+				"description": "Read SAP config file from ADLS",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "SET_Current_Timestamp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "DS_ADLS_Config_JSON",
+						"type": "DatasetReference",
+						"parameters": {
+							"configFileName": "sap_config.json"
+						}
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "FE_Process_SAP_Files",
+				"description": "Loop through SAP files and copy in parallel",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LKP_Read_SAP_Config",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LKP_Read_SAP_Config').output.firstRow.files",
+						"type": "Expression"
+					},
+					"batchCount": 4,
+					"activities": [
+						{
+							"name": "CP_Copy_File",
+							"description": "Copy CSV to Parquet dynamically",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"modifiedDatetimeStart": {
+											"value": "@activity('LKP_Read_Watermark').output.firstRow.last_run_timestamp",
+											"type": "Expression"
+										},
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_ADLS_CSV_Parameterized",
+									"type": "DatasetReference",
+									"parameters": {
+										"containerName": {
+											"value": "@item().source_container",
+											"type": "Expression"
+										},
+										"folderPath": {
+											"value": "@item().source_folder",
+											"type": "Expression"
+										},
+										"fileName": {
+											"value": "@item().source_file",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_ADLS_Parquet_Parameterized",
+									"type": "DatasetReference",
+									"parameters": {
+										"containerName": {
+											"value": "@item().target_container",
+											"type": "Expression"
+										},
+										"folderPath": {
+											"value": "@item().target_folder",
+											"type": "Expression"
+										},
+										"fileName": {
+											"value": "@item().target_file",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "LKP_Read_Watermark",
+				"description": "Read last run timestamp from watermark file",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "DS_ADLS_Watermark_JSON",
+						"type": "DatasetReference",
+						"parameters": {
+							"watermarkFileName": "sap_watermark.json"
+						}
+					}
+				}
+			},
+			{
+				"name": "SET_Current_Timestamp",
+				"description": "Store current timestamp for watermark update",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "LKP_Read_Watermark",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "CurrentTimestamp",
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"variables": {
+			"CurrentTimestamp": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
