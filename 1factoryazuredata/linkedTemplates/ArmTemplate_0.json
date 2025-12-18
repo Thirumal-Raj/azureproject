@@ -1,0 +1,1459 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "1factoryazuredata"
+		},
+		"LS_ADLS_Gen2_Medallion_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_ADLS_Gen2_Medallion'"
+		},
+		"LS_AzureSQL_Metadata_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'LS_AzureSQL_Metadata'"
+		},
+		"LS_ADLS_Gen2_Medallion_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://storageazureadls.dfs.core.windows.net/"
+		},
+		"LS_AzureSQL_Metadata_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "azureprojectserverptr.database.windows.net"
+		},
+		"LS_AzureSQL_Metadata_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "azureprojectdbptr"
+		},
+		"LS_AzureSQL_Metadata_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "adminptr"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_ADLS_Gen2_Medallion')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "ADLS Gen2 connection for Medallion project",
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_ADLS_Gen2_Medallion_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_ADLS_Gen2_Medallion_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_AzureSQL_Metadata')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "SQL Database for pipeline watermark metadata",
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('LS_AzureSQL_Metadata_properties_typeProperties_server')]",
+					"database": "[parameters('LS_AzureSQL_Metadata_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SQL",
+					"userName": "[parameters('LS_AzureSQL_Metadata_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('LS_AzureSQL_Metadata_password')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_CSV_Parameterized')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Gen2_Medallion",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"containerName": {
+						"type": "string"
+					},
+					"folderPath": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().containerName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Gen2_Medallion')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_Config_JSON')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Gen2_Medallion",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"configFileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().configFileName",
+							"type": "Expression"
+						},
+						"fileSystem": "config"
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Gen2_Medallion')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_JSON_Parameterized')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Gen2_Medallion",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"containerName": {
+						"type": "string"
+					},
+					"folderPath": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().containerName",
+							"type": "Expression"
+						}
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Gen2_Medallion')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_Parquet_Parameterized')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Gen2_Medallion",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"containerName": {
+						"type": "string"
+					},
+					"folderPath": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().containerName",
+							"type": "Expression"
+						}
+					},
+					"compressionCodec": "none"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Gen2_Medallion')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_Watermark_JSON')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Gen2_Medallion",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"watermarkFileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().watermarkFileName",
+							"type": "Expression"
+						},
+						"folderPath": "watermark",
+						"fileSystem": "config"
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Gen2_Medallion')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL_Watermark_Table')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_AzureSQL_Metadata",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "watermark_id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "source_name",
+						"type": "varchar"
+					},
+					{
+						"name": "last_run_timestamp",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "last_run_status",
+						"type": "varchar"
+					},
+					{
+						"name": "files_processed",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "updated_at",
+						"type": "datetime2",
+						"scale": 7
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "pipeline_watermark"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQL_Metadata')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Incremental_CRM_Ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Incremental CRM pipeline using SQL watermark with filtered JSON ingestion",
+				"activities": [
+					{
+						"name": "LKP_Read_CRM_Config",
+						"description": "Read CRM config file from ADLS",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "SET_Current_Timestamp",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "DS_ADLS_Config_JSON",
+								"type": "DatasetReference",
+								"parameters": {
+									"configFileName": "crm_config.json"
+								}
+							}
+						}
+					},
+					{
+						"name": "FE_Process_CRM_Files",
+						"description": "Loop through CRM files and copy in parallel",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "LKP_Read_CRM_Config",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('LKP_Read_CRM_Config').output.firstRow.files",
+								"type": "Expression"
+							},
+							"batchCount": 3,
+							"activities": [
+								{
+									"name": "CP_Copy_File",
+									"description": "Copy JSON to Parquet dynamically",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "JsonSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"modifiedDatetimeStart": {
+													"value": "@activity('LKP_Read_SQL_Watermark').output.firstRow.last_run_timestamp",
+													"type": "Expression"
+												},
+												"modifiedDatetimeEnd": {
+													"value": "@variables('CurrentTimestamp')",
+													"type": "Expression"
+												},
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "JsonReadSettings"
+											}
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "DS_ADLS_JSON_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().source_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().source_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().source_file",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_ADLS_Parquet_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().target_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().target_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().target_file",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "LKP_Read_SQL_Watermark",
+						"description": "Read CRM watermark timestamp from SQL database",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT last_run_timestamp \nFROM dbo.pipeline_watermark \nWHERE source_name = 'CRM'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_SQL_Watermark_Table",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "SET_Current_Timestamp",
+						"description": "Capture current UTC timestamp for watermark update",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "LKP_Read_SQL_Watermark",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "CurrentTimestamp",
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "SP_Update_Watermark",
+						"description": "Update CRM watermark in SQL database after successful processing",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "FE_Process_CRM_Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_UpdateWatermark]",
+							"storedProcedureParameters": {
+								"FilesProcessed": {
+									"value": {
+										"value": "@length(activity('LKP_Read_CRM_Config').output.firstRow.files)",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"NewTimestamp": {
+									"value": {
+										"value": "@variables('CurrentTimestamp')",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"SourceName": {
+									"value": "CRM",
+									"type": "String"
+								},
+								"Status": {
+									"value": "Success",
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_AzureSQL_Metadata",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"CurrentTimestamp": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Config_JSON')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_Watermark_Table')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQL_Metadata')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_JSON_Parameterized')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Parquet_Parameterized')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Incremental_SAP_Ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Metadata-driven pipeline to copy SAP CSV files from raw to bronze as Parquet",
+				"activities": [
+					{
+						"name": "LKP_Read_SAP_Config",
+						"description": "Read SAP config file from ADLS",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "SET_Current_Timestamp",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "DS_ADLS_Config_JSON",
+								"type": "DatasetReference",
+								"parameters": {
+									"configFileName": "sap_config.json"
+								}
+							},
+							"firstRowOnly": true
+						}
+					},
+					{
+						"name": "FE_Process_SAP_Files",
+						"description": "Loop through SAP files and copy in parallel",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "LKP_Read_SAP_Config",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('LKP_Read_SAP_Config').output.firstRow.files",
+								"type": "Expression"
+							},
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "CP_Copy_File",
+									"description": "Copy CSV to Parquet dynamically",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"modifiedDatetimeStart": {
+													"value": "@activity('LKP_Read_SQL_Watermark').output.firstRow.last_run_timestamp",
+													"type": "Expression"
+												},
+												"modifiedDatetimeEnd": {
+													"value": "@variables('CurrentTimestamp')",
+													"type": "Expression"
+												},
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "DS_ADLS_CSV_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().source_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().source_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().source_file",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_ADLS_Parquet_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().target_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().target_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().target_file",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "LKP_Read_SQL_Watermark",
+						"description": "Read SAP watermark from SQL database",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "SELECT last_run_timestamp \nFROM dbo.pipeline_watermark \nWHERE source_name = 'SAP'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_SQL_Watermark_Table",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "SET_Current_Timestamp",
+						"description": "Store current timestamp for watermark update",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "LKP_Read_SQL_Watermark",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "CurrentTimestamp",
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "SP_Update_Watermark",
+						"description": "Update watermark in SQL database",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "FE_Process_SAP_Files",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_UpdateWatermark]",
+							"storedProcedureParameters": {
+								"FilesProcessed": {
+									"value": {
+										"value": "@length(activity('LKP_Read_SAP_Config').output.firstRow.files)",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"NewTimestamp": {
+									"value": {
+										"value": "@variables('CurrentTimestamp')",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"SourceName": {
+									"value": "SAP",
+									"type": "String"
+								},
+								"Status": {
+									"value": "Success",
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_AzureSQL_Metadata",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"CurrentTimestamp": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Config_JSON')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_Watermark_Table')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureSQL_Metadata')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_CSV_Parameterized')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Parquet_Parameterized')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Incremental_SAP_Ingestion1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Metadata-driven pipeline to copy SAP CSV files from raw to bronze as Parquet",
+				"activities": [
+					{
+						"name": "LKP_Read_SAP_Config",
+						"description": "Read SAP config file from ADLS",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "SET_Current_Timestamp",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "DS_ADLS_Config_JSON",
+								"type": "DatasetReference",
+								"parameters": {
+									"configFileName": "sap_config.json"
+								}
+							},
+							"firstRowOnly": true
+						}
+					},
+					{
+						"name": "FE_Process_SAP_Files",
+						"description": "Loop through SAP files and copy in parallel",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "LKP_Read_SAP_Config",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('LKP_Read_SAP_Config').output.firstRow.files",
+								"type": "Expression"
+							},
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "CP_Copy_File",
+									"description": "Copy CSV to Parquet dynamically",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"modifiedDatetimeStart": {
+													"value": "@activity('LKP_Read_Watermark').output.firstRow.last_run_timestamp",
+													"type": "Expression"
+												},
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "DS_ADLS_CSV_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().source_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().source_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().source_file",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_ADLS_Parquet_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().target_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().target_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().target_file",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					},
+					{
+						"name": "LKP_Read_Watermark",
+						"description": "Read last run timestamp from watermark file",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "DS_ADLS_Watermark_JSON",
+								"type": "DatasetReference",
+								"parameters": {
+									"watermarkFileName": "sap_watermark.json"
+								}
+							}
+						}
+					},
+					{
+						"name": "SET_Current_Timestamp",
+						"description": "Store current timestamp for watermark update",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "LKP_Read_Watermark",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "CurrentTimestamp",
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"CurrentTimestamp": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Config_JSON')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Watermark_JSON')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_CSV_Parameterized')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Parquet_Parameterized')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Metadata_Driven_CRM_Ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Metadata-driven pipeline to copy CRM JSON files from raw to bronze as Parquet",
+				"activities": [
+					{
+						"name": "LKP_Read_CRM_Config",
+						"description": "Read CRM config file from ADLS",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "DS_ADLS_Config_JSON",
+								"type": "DatasetReference",
+								"parameters": {
+									"configFileName": "crm_config.json"
+								}
+							}
+						}
+					},
+					{
+						"name": "FE_Process_CRM_Files",
+						"description": "Loop through CRM files and copy in parallel",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "LKP_Read_CRM_Config",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('LKP_Read_CRM_Config').output.firstRow.files",
+								"type": "Expression"
+							},
+							"batchCount": 3,
+							"activities": [
+								{
+									"name": "CP_Copy_File",
+									"description": "Copy JSON to Parquet dynamically",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "JsonSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "JsonReadSettings"
+											}
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "DS_ADLS_JSON_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().source_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().source_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().source_file",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_ADLS_Parquet_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().target_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().target_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().target_file",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Config_JSON')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_JSON_Parameterized')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Parquet_Parameterized')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Metadata_Driven_SAP_Ingestion')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Metadata-driven pipeline to copy SAP CSV files from raw to bronze as Parquet",
+				"activities": [
+					{
+						"name": "LKP_Read_SAP_Config",
+						"description": "Read SAP config file from ADLS",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "DS_ADLS_Config_JSON",
+								"type": "DatasetReference",
+								"parameters": {
+									"configFileName": "sap_config.json"
+								}
+							},
+							"firstRowOnly": true
+						}
+					},
+					{
+						"name": "FE_Process_SAP_Files",
+						"description": "Loop through SAP files and copy in parallel",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "LKP_Read_SAP_Config",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('LKP_Read_SAP_Config').output.firstRow.files",
+								"type": "Expression"
+							},
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "CP_Copy_File",
+									"description": "Copy CSV to Parquet dynamically",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "ParquetSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "ParquetWriteSettings"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "DS_ADLS_CSV_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().source_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().source_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().source_file",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_ADLS_Parquet_Parameterized",
+											"type": "DatasetReference",
+											"parameters": {
+												"containerName": {
+													"value": "@item().target_container",
+													"type": "Expression"
+												},
+												"folderPath": {
+													"value": "@item().target_folder",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@item().target_file",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Config_JSON')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_CSV_Parameterized')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Parquet_Parameterized')]"
+			]
+		}
+	]
+}
