@@ -7,7 +7,14 @@
 				"name": "LKP_Read_SAP_Config",
 				"description": "Read SAP config file from ADLS",
 				"type": "Lookup",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "SET_Current_Timestamp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -78,7 +85,11 @@
 										"type": "AzureBlobFSReadSettings",
 										"recursive": true,
 										"modifiedDatetimeStart": {
-											"value": "@activity('LKP_Read_Watermark').output.firstRow.last_run_timestamp",
+											"value": "@activity('LKP_Read_SQL_Watermark').output.firstRow.last_run_timestamp",
+											"type": "Expression"
+										},
+										"modifiedDatetimeEnd": {
+											"value": "@variables('CurrentTimestamp')",
 											"type": "Expression"
 										},
 										"enablePartitionDiscovery": false
@@ -148,6 +159,57 @@
 							]
 						}
 					]
+				}
+			},
+			{
+				"name": "LKP_Read_SQL_Watermark",
+				"description": "Read SAP watermark from SQL database",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "SELECT last_run_timestamp \nFROM dbo.pipeline_watermark \nWHERE source_name = 'SAP'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_SQL_Watermark_Table",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "SET_Current_Timestamp",
+				"description": "Store current timestamp for watermark update",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "LKP_Read_SQL_Watermark",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "CurrentTimestamp",
+					"value": {
+						"value": "@utcNow()",
+						"type": "Expression"
+					}
 				}
 			}
 		],
